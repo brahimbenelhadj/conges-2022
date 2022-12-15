@@ -1,0 +1,136 @@
+import calendar
+from calendar import monthrange
+import datetime
+from openpyxl import load_workbook
+
+wbToRead = load_workbook("Fichier des congés MD16 (copie de MD13).xlsx")
+wbToWrite = load_workbook(
+    "MD16B - Extrait Plan de charges 2022 (Abdessamad).xlsx")
+sheetToWrite = wbToWrite["Saisie"]
+planning = wbToRead["Planning TT"]
+
+month_list = {
+    1: "January",
+    2: "February",
+    3: "March",
+    4: "April",
+    5: "May",
+    6: "June",
+    7: "July",
+    8: "August",
+    9: "September",
+    10: "October",
+    11: "November",
+    12: "December"
+}
+
+#Le chiffre correspond à la ligne dans le excel d'écriture de l'employé, et la valeur à droite correspond à la ligne de l'employé dans le fichier de lecture
+
+leave_list = ["CP", "CPA", "TRA", "CPM", "ECO"]
+employees_list = {3: "E13:NS13",
+                  12: "E14:NS14",
+                  21: "E15:NS15",
+                  41: "E16:NS16",
+                  49: "E17:NS17",
+                  59: "E18:NS18",
+                  67: "E19:NS19"
+                  }
+for employee_row in employees_list.keys():
+    employee = employees_list.get(employee_row)
+    print("Ceci est l'employé " + str(employee_row) + " et écrit sur " + str(employee))
+
+    chiffre_incrémenteur_des_mois = 0
+    colonne_écriture = 10
+    compteur_de_cp = 0
+
+    for month in month_list:
+        jour = 1
+        # On définit le mois actuel et le mois d'avant
+        month_now = month_list.get(month)
+        if month_list.get(month - 1) is None:
+            month_before = month_list.get(12)
+        else:
+            month_before = month_list.get(month - 1)
+        print(month_list.get(month))
+
+        if month_now == "January":
+            chiffre_incrémenteur_des_mois = -33
+        else:
+            if month_now == "February":
+                chiffre_incrémenteur_des_mois += \
+                monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] + 7
+            elif month_now == "March":
+                chiffre_incrémenteur_des_mois += \
+                monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] - 2
+            elif month_now == "April":
+                chiffre_incrémenteur_des_mois += \
+                monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] + 3
+            elif month_now == "May":
+                chiffre_incrémenteur_des_mois += \
+                    monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] - 1
+            elif month_now == "June":
+                chiffre_incrémenteur_des_mois += \
+                    monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] + 3
+            elif month_now == "July":
+                chiffre_incrémenteur_des_mois += \
+                    monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] - 1
+            elif month_now == "August":
+                chiffre_incrémenteur_des_mois += \
+                    monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] + 1
+            elif month_now == "September":
+                chiffre_incrémenteur_des_mois += \
+                    monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] + 3
+            elif month_now == "October":
+                chiffre_incrémenteur_des_mois += \
+                    monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] - 1
+            elif month_now == "November":
+                chiffre_incrémenteur_des_mois += \
+                    monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] + 3
+            elif month_now == "December":
+                chiffre_incrémenteur_des_mois += \
+                    monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] - 1
+
+        # Avec le - 1 on parcourt normalement le mois entier
+        # cell in range(1, monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] + 1): permet d'avoir le nombre précis de jours dans un mois
+        for cell in range(0, monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1]):
+            print(str(cell + 1) + " of " + month_now)
+            print(planning[employee][0][cell + 2 + chiffre_incrémenteur_des_mois +
+                                        monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[
+                                            1]])
+            print(planning[employee][0][cell + 2 + chiffre_incrémenteur_des_mois +
+                                        monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[
+                                            1]].value)
+            print(cell)
+            # Si on trouve un congé, on incrémente le compteur pour stocker le nombre de congés
+
+            if planning[employee][0][cell + 2 + chiffre_incrémenteur_des_mois +
+                                     monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[
+                                         1]].value in leave_list:
+                compteur_de_cp += 1
+
+            # ("Voici le compteur de congés : " + str(compteur_de_cp))
+            d = datetime.datetime(planning["B1"].value, month, cell % monthrange(planning["B1"].value, month)[1] + 1)
+            print(d)
+            if d.strftime("%A") == "Sunday" and cell != 0 and cell != 1 and cell != \
+                    monthrange(planning["B1"].value, list(calendar.month_name).index(month_now))[1] - 1:
+
+                if compteur_de_cp == 0:
+                    sheetToWrite.cell(row=employee_row, column=colonne_écriture, value="")
+                else:
+                    sheetToWrite.cell(row=employee_row, column=colonne_écriture, value=compteur_de_cp)
+
+                compteur_de_cp = 0
+                colonne_écriture += 1
+
+        if compteur_de_cp == 0:
+            sheetToWrite.cell(row=employee_row, column=colonne_écriture, value="")
+            colonne_écriture += 1
+        else:
+            sheetToWrite.cell(row=employee_row, column=colonne_écriture, value=compteur_de_cp)
+            print("J'ecris dans la colonne " + str(colonne_écriture) + " les " + str(
+                compteur_de_cp) + " jours de congés de la semaine")
+            compteur_de_cp = 0
+            colonne_écriture += 1
+
+    print("la valeur de la cellule BQ3 est : " + str(sheetToWrite["BQ3"].value))
+    wbToWrite.save("MD16B - Extrait Plan de charges 2022 (Abdessamad).xlsx")
